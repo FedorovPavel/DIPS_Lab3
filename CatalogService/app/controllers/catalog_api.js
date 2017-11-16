@@ -10,10 +10,8 @@ module.exports = function (app) {
 
 //  get cars
 router.get('/',function(req, res, next){
-  let page  = validator.checkIntNumber(req.query.page);
-  let count = validator.checkIntNumber(req.query.count);
-  page  = (typeof(page)   != 'undefined') ? page  : 0;
-  count = (typeof(count)  != 'undefined') ? count : 20;
+  let page  = req.query.page;
+  let count = req.query.count;
   catalog.getCars(page, count, function(err ,result){
     if (err)
       res.status(400).send({status : 'Error', message : err});

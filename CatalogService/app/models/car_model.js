@@ -26,8 +26,7 @@ CarSchema.statics.saveNewCar = function(car, callback){
 }
 
 CarSchema.statics.getCars = function(page = 0, count = 20, callback){
-  return this.find(function(err, cars)
-  {
+  return this.find(function(err, cars){
     if (err)
       callback(err, null);
     else {
@@ -45,10 +44,7 @@ CarSchema.statics.getCars = function(page = 0, count = 20, callback){
 }
 
 CarSchema.statics.getCar = function(id, callback){
-  if (!id || typeof(id) == 'undefined' || id.length == 0){
-    return callback({status : 'Error', message : 'ID is indefined'});
-  };
-  return this.findById(id, function(err, car){
+  return this.findById(id, function(err, car) {
     if (err)
       callback(err, null);
     else {
