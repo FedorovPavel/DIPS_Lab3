@@ -40,7 +40,7 @@ router.get('/:id', function(req, res, next){
   }
 });
 
-router.options('/live',function(req, res, next){
+router.head('/live',function(req, res, next){
   res.status(200).send(null);
 });
 
