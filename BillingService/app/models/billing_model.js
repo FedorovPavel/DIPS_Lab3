@@ -12,9 +12,7 @@ BillingSchema.virtual('date')
   .get(() => this._id.getTimestamp());
 
 BillingSchema.statics.getBillingRecord = function(id, callback){
-  if (!id || typeof(id) == 'undefined' || id.length == 0)
-    return callback('ID is undefined', null);
-  this.findById(id, function(err, record){
+  return this.findById(id, function(err, record){
     if (err) {
       return callback(err, null);
     } else {
@@ -28,8 +26,6 @@ BillingSchema.statics.getBillingRecord = function(id, callback){
 }
 
 BillingSchema.statics.createBillingRecord = function(object, callback){
-  if (!object || typeof(object) == 'undefined' || typeof(object) != 'object')
-    return callback('Params is undefined', null);
   let record = createBillingRecordInfo(object);
   return record.save(function(err, result){
     if(err)
