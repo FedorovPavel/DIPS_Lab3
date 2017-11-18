@@ -115,13 +115,39 @@ router.post('/orders/:uid/completed_order/:oid', function(req, res, next){
   });
 });
 
-router.post('/billings/:uid/createBilling/', function(req, res, next){
-  const uid = req.params.id;
-  const data = {
-    paySystem : req.body.paySystem,
-    account   : req.body.account,
-    cost      : req.body.cost
+router.post('/billings/', function(req, res, next){
+  let data = {};
+  const paySystem = validator.checkPaySystem(req.body.paySystem);
+  if (typeof(paySystem) == 'undefined') {
+    res.status(400).send({status : 'Error', message : 'Bad request : PaySystem is undefined'});
+    return;
   }
+  if (!paySystem){
+    res.status(400).send({status : 'Error', message : 'Bad request : Invalid PaySystem'});
+    return;
+  }
+  data.paySystem = paySystem;
+  const account = validator.checkAccount(req.body.account);
+  if (typeof(account)  == 'undefined') {
+    res.status(400).send({status : 'Error', message : 'Bad request : Account is undefined'});
+    return;
+  }
+  if (!account){
+    res.status(400).send({status : 'Error', message : 'Bad request : Invalid Account'});
+    return;
+  }
+  data.account = account;
+  const cost  = validator.checkCost(req.body.cost);
+  console.log(cost);
+  if (typeof(cost) == 'undefined'){
+    res.status(400).send({status : 'Error', message : 'Bad request : Cost is undefined'});
+    return;
+  }
+  if (!cost){
+    res.status(400).send({status : 'Error', message : 'Bad request : Invalid cost'});
+    return;
+  }
+  data.cost = cost;
   bus.createBilling(data, function(err, status, response){
     if (err)
       return next(err);
@@ -131,10 +157,12 @@ router.post('/billings/:uid/createBilling/', function(req, res, next){
   });
 });
 
-router.get('/billings/:uid/getBilling/:bid', function(req, res, next){
-  const uid = req.params.id;
-  const bid = req.params.bid;
-  bus.getBilling(bid, function(err, status, response){
+router.get('/billings/:id', function(req, res, next){
+  const id = validator.checkID(req.params.id);
+  if (typeof(id) == 'undefined'){
+    res.status(400).send({status : 'Error', message : 'Bad request : id is not valid'});
+  }
+  bus.getBilling(id, function(err, status, response){
     if (err)
       return next(err);
     else {
