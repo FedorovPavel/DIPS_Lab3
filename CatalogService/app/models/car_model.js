@@ -25,7 +25,9 @@ CarSchema.statics.saveNewCar = function(car, callback){
   return car.save(callback);
 }
 
-CarSchema.statics.getCars = function(page = 0, count = 20, callback){
+CarSchema.statics.getCars = function(page, count, callback){
+  page = Number(page);
+  count = Number(count);
   return this.find(function(err, cars){
     if (err)
       callback(err, null);
