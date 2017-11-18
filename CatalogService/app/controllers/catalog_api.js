@@ -10,7 +10,7 @@ module.exports = function (app) {
 //  get cars
 router.get('/',function(req, res, next){
   let page  = req.query.page;
-  let count = req.query.count;
+  let count = req.query.count; 
   catalog.getCars(page, count, function(err ,result){
     if (err)
       res.status(400).send({status : 'Error', message : err});
