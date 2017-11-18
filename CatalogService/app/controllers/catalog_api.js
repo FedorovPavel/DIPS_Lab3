@@ -1,8 +1,7 @@
 var express   = require('express'),
     router    = express.Router(),
     mongoose  = require('mongoose'),
-    catalog   = mongoose.model('Car'),
-    validator = require('./../validator/validator');
+    catalog   = mongoose.model('Car');
 
 module.exports = function (app) {
   app.use('/catalog', router);
