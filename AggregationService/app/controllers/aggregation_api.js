@@ -9,8 +9,8 @@ module.exports = function (app) {
 
 // Get any cars
 router.get('/catalog', function(req, res, next){
-  const page  = validator.checkPosIntNumber(req.query.page);
-  const count = validator.checkPosIntNumber(req.query.count);
+  let page  = validator.checkPageNumber(req.query.page);
+  let count = validator.checkCountNumber(req.query.count);
   bus.getCars(page, count, function(err, statusCode, responseText){
     if (err)
       return next(err);
