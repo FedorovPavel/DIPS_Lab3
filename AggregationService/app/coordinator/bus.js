@@ -145,7 +145,7 @@ function responseHandlerArrayObject(err, status, response, callback) {
         if (status == 200) {
             if (response) {
                 const parseObject = JSON.parse(response);
-                const array = array.from(parseObject);
+                const array = Array.from(parseObject);
                 return callback(err, status, array);
             } else {
                 return callback(err, status, null);
