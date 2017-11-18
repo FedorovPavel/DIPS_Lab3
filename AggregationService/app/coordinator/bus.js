@@ -69,7 +69,7 @@ module.exports = {
     createBilling: function (data, callback) {
         const url = _BillingHost + '/billings';
         const options = createOptions(url, "POST");
-        createAndSendHttpPutWithFormRequest(options, data, function (err, status, response) {
+        createAndSendHttpPostRequest(options, data, function (err, status, response) {
             return responseHandlerObject(err, status, response, callback);
         });
         return;
