@@ -10,14 +10,14 @@ module.exports = {
         });
         return;
     },
-    getCarsByIDs : function(ids, callback){
+    /* getCarsByIDs : function(ids, callback){
         const url = _CatalogHost + '/catalog/ids?ids=' + ids;
         const options = createOptions(url, "GET");
         createAndSendGetHttpRequest(options, function(err, status, response){
             return responseHandlerArrayObject(err, status, response, callback);
         });
         return;
-    },
+    },*/
     getCar: function (id, callback) {
         const url = _CatalogHost + '/catalog/' + id;
         const options = createOptions(url, "GET");
@@ -50,10 +50,10 @@ module.exports = {
         });
         return;
     },
-    orderPaid: function (order_id, data, callback) {
-        const url = _OrderHost + '/orders/paid' + order_id;
+    orderPaid: function (order_id, billing_id, callback) {
+        const url = _OrderHost + '/orders/' + order_id + '/paid/' + billing_id;
         const options = createOptions(url, "PUT");
-        createAndSendHttpPutWithFormRequest(options, data, function (err, status, response) {
+        createAndSendPutWithFormHttpRequest(options, null, function (err, status, response) {
             return responseHandlerObject(err, status, response, callback);
         });
         return;
@@ -61,7 +61,7 @@ module.exports = {
     orderConfirm: function (order_id, callback) {
         const url = _OrderHost + '/orders/confirm/' + order_id;
         const options = createOptions(url, "PUT");
-        createAndSendHttpPostRequest(options, null, function (err, status, response) {
+        createAndSendPutWithFormHttpRequest(options, null, function (err, status, response) {
             return responseHandlerObject(err, status, response, callback);
         });
         return;
@@ -69,7 +69,7 @@ module.exports = {
     orderComplete: function (order_id, callback) {
         const url = _OrderHost + '/orders/complete/' + order_id;
         const options = createOptions(url, "PUT");
-        createAndSendHttpPostRequest(options, null, function (err, status, response) {
+        createAndSendPutWithFormHttpRequest(options, null, function (err, status, response) {
             return responseHandlerObject(err, status, response, callback);
         });
         return;
@@ -82,7 +82,7 @@ module.exports = {
         });
         return;
     },
-    createBilling: function (data, callback) {
+    createBilling: function (id, data, callback) {
         const url = _BillingHost + '/billings';
         const options = createOptions(url, "POST");
         createAndSendHttpPostRequest(options, data, function (err, status, response) {
@@ -98,9 +98,28 @@ module.exports = {
         });
         return;
     },
+    revertBilling : function(id, callback){
+        const url = _BillingHost + '/billings/' + id;
+        const options = createOptions(url, 'DELETE');
+        createAndSendDeleteHttpRequest(options, function(err, status, response){
+            return responseHandlerObject(err, status, response, callback);
+        });
+        return;
+    }
 }
 
-function createAndSendHttpPutWithFormRequest(options, data, callback) {
+function createAndSendDeleteHttpRequest(options, callback) {
+    const request = require('request');
+    request.delete(options.uri, options, function (errors, response, body) {
+        if (errors) {
+            callback(errors, null, null);
+        } else {
+            callback(null, response.statusCode, body);
+        }
+    });
+}
+
+function createAndSendPutWithFormHttpRequest(options, data, callback) {
     const request = require('request');
     request.put(options.uri, options, function (errors, response, body) {
         if (errors) {
@@ -144,6 +163,8 @@ function createAndSendHeadHttpRequest(options, callback){
     });
 }
 
+
+
 function createOptions(uri, method) {
     let item = {
         method: method,
@@ -154,8 +175,8 @@ function createOptions(uri, method) {
 
 function responseHandlerObject(err, status, response, callback) {
     if (err) {
-        if (err.code == "ECONNREFUSED" || status == 500)
-            return callback(err, 500, 'Sorry. Service is not available, please try again later');
+        if (err.code == "ECONNREFUSED")
+            return callback(err, 503, 'Sorry. Service is not available, please try again later');
         else 
             return callback(err, status, response);
     } else {
@@ -170,8 +191,8 @@ function responseHandlerObject(err, status, response, callback) {
 
 function responseHandlerArrayObject(err, status, response, callback) {
     if (err){
-        if (err.code == "ECONNREFUSED" || status == 500)
-            return callback(err, 500, 'Sorry. Service is not available, please try again later');
+        if (err.code == "ECONNREFUSED")
+            return callback(err, 503, 'Sorry. Service is not available, please try again later');
         else 
             return callback(err, status, response);
     } else {
