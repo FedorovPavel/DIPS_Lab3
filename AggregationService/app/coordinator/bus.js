@@ -78,7 +78,7 @@ module.exports = {
         const url = _OrderHost +'/orders/live';
         const options = createOptions(url, 'HEAD');
         createAndSendHeadHttpRequest(options, function(err, status){
-            return callback(err, status.statusCode);
+            return callback(err, status);
         });
         return;
     },
@@ -154,8 +154,8 @@ function createOptions(uri, method) {
 
 function responseHandlerObject(err, status, response, callback) {
     if (err) {
-        if (err.code == "ECONNREFUSED")
-            return callback(err, 500, null);
+        if (err.code == "ECONNREFUSED" || status == 500)
+            return callback(err, 500, 'Sorry. Service is not available, please try again later');
         else 
             return callback(err, status, response);
     } else {
@@ -169,9 +169,12 @@ function responseHandlerObject(err, status, response, callback) {
 }
 
 function responseHandlerArrayObject(err, status, response, callback) {
-    if (err)
-        return callback(err, status, response);
-    else {
+    if (err){
+        if (err.code == "ECONNREFUSED" || status == 500)
+            return callback(err, 500, 'Sorry. Service is not available, please try again later');
+        else 
+            return callback(err, status, response);
+    } else {
         if (status == 200) {
             if (response) {
                 const parseObject = JSON.parse(response);
