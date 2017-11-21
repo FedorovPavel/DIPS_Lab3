@@ -62,7 +62,7 @@ router.post('/confirm/:id', function(req, res, next){
         res.status(400).send({status : 'Error', message : err});
     } else {
       if (result) {
-        res.status(200).send({status : 'Change status succesfully', message : result});
+        res.status(200).send(result);
       } else {
         res.status(404).send({status : 'Error', message : 'Not found order'});
       }
@@ -70,14 +70,10 @@ router.post('/confirm/:id', function(req, res, next){
   });
 });
 
-router.post('/paid/:id', function(req, res, next){
+router.put('/:id/paid/:bid', function(req, res, next){
   const id = req.params.id;
-  const data = {
-    paySystem : req.body.paySystem,
-    account   : req.body.account,
-    cost      : req.body.cost
-  };
-  orders.setPaidStatus(id, function(err, result){
+  const billing_id = req.params.bid;
+  orders.setPaidStatus(id, billing_id, function(err, result){
     if (err){
       if (err.kind == "ObjectId")
         res.status(400).send({status : 'Error', message : 'Bad request:Bad ID'});
@@ -93,7 +89,7 @@ router.post('/paid/:id', function(req, res, next){
   });
 });
 
-router.post('/complete/:id', function(req, res, next){
+router.put('/complete/:id', function(req, res, next){
   const id = req.params.id;
   orders.setCompleteStatus(id, function(err, result){
     if (err) {
@@ -103,7 +99,7 @@ router.post('/complete/:id', function(req, res, next){
         res.status(400).send({status : 'Error', message : err});
     } else {
       if (result) {
-        res.status(200).send(result);
+        res.status(202).send(result);
       } else {
         res.status(404).send({status : 'Error', message : 'Not found order'});
       }
