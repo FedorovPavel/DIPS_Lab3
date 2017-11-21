@@ -10,6 +10,14 @@ module.exports = {
         });
         return;
     },
+    getCarsByIDs : function(ids, callback){
+        const url = _CatalogHost + '/catalog/ids?ids=' + ids;
+        const options = createOptions(url, "GET");
+        createAndSendGetHttpRequest(options, function(err, status, response){
+            return responseHandlerArrayObject(err, status, response, callback);
+        });
+        return;
+    },
     getCar: function (id, callback) {
         const url = _CatalogHost + '/catalog/' + id;
         const options = createOptions(url, "GET");
@@ -34,7 +42,7 @@ module.exports = {
         });
         return;
     },
-    getOrders: function (order_id, page, count, callback) {
+    getOrders: function (page, count, callback) {
         const url = _OrderHost + '/orders?page=' + page + '&count=' + count;
         const options = createOptions(url, "GET");
         createAndSendGetHttpRequest(options, function (err, status, response) {
@@ -63,6 +71,14 @@ module.exports = {
         const options = createOptions(url, "PUT");
         createAndSendHttpPostRequest(options, null, function (err, status, response) {
             return responseHandlerObject(err, status, response, callback);
+        });
+        return;
+    },
+    checkOrderService : function(callback){
+        const url = _OrderHost +'/orders/live';
+        const options = createOptions(url, 'HEAD');
+        createAndSendHeadHttpRequest(options, function(err, status){
+            return callback(err, status.statusCode);
         });
         return;
     },
@@ -117,6 +133,17 @@ function createAndSendGetHttpRequest(options, callback) {
     });
 }
 
+function createAndSendHeadHttpRequest(options, callback){
+    const request = require('request');
+    request.head(options.uri, options, function(errors, response, body){
+        if (errors){
+            return callback(errors, null, null);
+        } else {
+            return callback(null, response.statusCode, body);
+        }
+    });
+}
+
 function createOptions(uri, method) {
     let item = {
         method: method,
@@ -126,9 +153,12 @@ function createOptions(uri, method) {
 }
 
 function responseHandlerObject(err, status, response, callback) {
-    if (err)
-        return callback(err, status, response);
-    else {
+    if (err) {
+        if (err.code == "ECONNREFUSED")
+            return callback(err, 500, null);
+        else 
+            return callback(err, status, response);
+    } else {
         if (response) {
             const object = JSON.parse(response);
             return callback(err, status, object);
