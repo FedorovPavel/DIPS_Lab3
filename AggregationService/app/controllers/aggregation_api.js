@@ -2,7 +2,8 @@ var express   = require('express'),
     router    = express.Router(),
     bus       = require('./../coordinator/bus'),
     validator = require('./../validator/validator'),
-    amqp = require('amqplib/callback_api');
+    amqp = require('amqplib/callback_api'),
+    interval  = 20000;// 20s to repeate check live
     
 
 module.exports = function (app) {
@@ -13,25 +14,30 @@ function addIdOrderToQueue(id) {
   amqp.connect('amqp://localhost', function(err, conn){
     conn.createChannel(function(err, ch){
       var queue = 'orders_id';
-
+      
       ch.assertQueue(queue, {durable : false});
-      ch.sendToQueue(queue, Buffer.from(id));
-      console.log('ID :' + id + 'added to queue [' + queue + ']');
+      ch.sendToQueue(queue, Buffer.from(id),{persistent : true});
+      console.log('ID : ' + id + ' added to queue [' + queue + ']');
     });
     setTimeout(function() {conn.close()},500);
   });
 }
 
-function receiveIdOrderFromQueue(){
+function receiveIdOrderFromQueue(callback){
   amqp.connect('amqp://localhost', function(err, conn){
     conn.createChannel(function(err, ch){
       var queue = 'orders_id';
 
       ch.assertQueue(queue, {durable : false});
       ch.consume(queue, function(id){
-        console.log('in queue exist id: ' + id);
-        return id;
+        const _id = id.content.toString('utf-8');
+        console.log('in queue exist id: ' + _id);
+        callback(_id);
       }, {noAck : true});
+      setTimeout(function(){
+        conn.close();
+        callback(null);
+      },500);
     });
   });
 }
@@ -39,21 +45,26 @@ function receiveIdOrderFromQueue(){
 setInterval(function(){
   bus.checkOrderService(function(err, status){
     if (status == 200){
-      const id = receiveIdOrderFromQueue();
-      bus.orderComplete(id, function(err, status){
-        if (err)
-          addIdOrderToQueue(id);
-        else {
-          if (status == 200){
-            console.log('id '+ id + 'processed');
-          } else {
-            addIdOrderToQueue(id);
-          }
+      receiveIdOrderFromQueue(function(id){
+        if (id){
+          bus.orderComplete(id, function(err, status){
+            if (err)
+              addIdOrderToQueue(id);
+            else {
+              if (status == 200){
+                console.log('id '+ id + 'processed');
+              } else if (status == 500) {
+                addIdOrderToQueue(id);
+              } else {
+                console.log('request to complete order with [' + id + '] return status : ' + status);
+              }
+            }
+          });
         }
       });
     }
   });
-}, 20000);
+}, interval);
 
 // Get any cars
 router.get('/catalog', function(req, res, next){
@@ -72,7 +83,7 @@ router.get('/catalog', function(req, res, next){
 router.get('/catalog/:id', function(req, res, next){
   const id = validator.checkID(req.params.id);
   if (typeof(id) == 'undefined'){
-    res.status(400).send({status : 'Error', message : 'Bad request'});
+    res.status(400).send({status : 'Error', message : 'Bad request: ID is undefined'});
   } else {
     bus.getCar(id, function(err, statusCode, responseText){
       if (err)
@@ -135,8 +146,8 @@ router.get('/orders/:order_id', function(req, res, next){
   });
 });
 
-//  Get orders
-router.get('/orders', function(req, res, next){
+//  Get orders(new version)
+/* router.get('/orders', function(req, res, next){
   let page  = validator.checkPageNumber(req.query.page);
   let count = validator.checkCountNumber(req.query.count);
   bus.getOrders(page, count, function(err, status, orders){
@@ -193,6 +204,62 @@ router.get('/orders', function(req, res, next){
       });
     }
   });
+});*/
+
+//  Get orders(last version)
+router.get('/orders', function(req, res, next){
+  let page  = validator.checkPageNumber(req.query.page);
+  let count = validator.checkCountNumber(req.query.count);
+  bus.getOrders(page, count, function(err, status, orders){
+    if (err)
+      res.status(status).send(orders);
+    else {
+      let _counter_to_ready_order = 0;
+      if (orders){
+        for (let I = 0; I < orders.length; I++){
+          const car_id = orders[I].CarID;
+          bus.getCar(car_id, function(err, status, car){
+            delete orders[I].CarID;
+            if (err){
+              orders[I].Car = 'Неизвестно';
+            } else {
+              if (car && status == 200){
+                orders[I].Car = car;
+              } else {
+                orders[I].Car = 'Неизвестно';
+              }
+            }
+            if (typeof(orders[I].BillingID) != 'undefined'){
+              const billing_id = orders[I].BillingID;
+              bus.getBilling(billing_id, function(err, status, billing){
+                delete orders[I].BillingID;
+                if (err){
+                  orders[I].Billing = 'Неизвестно';
+                } else {
+                  if (billing && status == 200){
+                    orders[I].Billing = billing;
+                  } else {
+                    orders[I].Billing = 'Неизвестно';
+                  }
+                }
+                _counter_to_ready_order++;
+                if (_counter_to_ready_order == orders.length){
+                  res.status(200).send(orders);
+                }
+              });
+            } else {
+              _counter_to_ready_order++;
+              if (_counter_to_ready_order == orders.length){
+                res.status(200).send(orders);
+              }
+            }
+          });
+        }
+      } else {
+        res.status(status).send(null);
+      }
+    }
+  });
 });
 
 router.post('/orders/paid/:id', function(req, res, next){
@@ -240,7 +307,7 @@ router.post('/orders/completed/:oid', function(req, res, next){
   });
 });
 
-router.post('/billings/', function(req, res, next){
+router.post('/billings', function(req, res, next){
   let data = {};
   const paySystem = validator.checkPaySystem(req.body.paySystem);
   if (typeof(paySystem) == 'undefined') {
