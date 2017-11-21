@@ -98,7 +98,7 @@ OrderSchema.statics.setWaitStatus = function(id, callback){
   });
 };
 
-OrderSchema.statics.setPaidStatus = function(id, callback){
+OrderSchema.statics.setPaidStatus = function(id, billing_id, callback){
   return this.findById(id, function(err, order){
     if (err)
       return callback(err, null);
@@ -106,11 +106,12 @@ OrderSchema.statics.setPaidStatus = function(id, callback){
       if (order){
         if (order.Status == 'WaitForBilling'){
           order.Status = 'Paid';
+          order.BillingID = billing_id;
           return order.save(function(err, res){
             if (err)
               return callback(err, null);
             else 
-              return callback(null, res);
+              return callback(null, getOrder(res));
           });
         } else {
           return callback("Status don't right", null);
@@ -141,21 +142,6 @@ OrderSchema.statics.setCompleteStatus = function(id, callback){
           return callback("Status don't right", null);
         }
       } else { 
-        return callback(null, null);
-      }
-    }
-  });
-};
-
-OrderSchema.statics.attachBilling = function(order_id, billing_id, callback){
-  return this.findByIdAndUpdate(order_id,{$set:{BillingID:billing_id}}, function(err, result){
-    if (err)
-      return callback(err, null);
-    else {
-      if (result){
-        const res = getOrder(result);
-        return callback(null, res);
-      } else {
         return callback(null, null);
       }
     }
