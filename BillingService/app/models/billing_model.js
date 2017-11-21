@@ -41,6 +41,16 @@ BillingSchema.statics.createBillingRecord = function(object, callback){
   });
 }
 
+BillingSchema.statics.revertBilling = function(id, callback){
+  return this.findByIdAndRemove(id, function(err, res){
+    if (err)
+      return callback(err, null);
+    else {
+      return callback(null, res);
+    }
+  });
+}
+
 mongoose.model('Billing', BillingSchema);
 
 function getBillingRecordInfo(record){
