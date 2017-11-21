@@ -37,6 +37,13 @@ router.get('/:id', function(req, res, next){
   });
 });
 
-router.head('/live', function(req, res, next){
-  res.status(200).send(null);
+router.delete('/:id', function(req, res, next){
+  const id = req.params.id;
+  billings.revertBilling(id, function(err, result){
+    if (err)
+      res.status(500).send({status: 'Critical error', message : err});
+    else {
+      res.send({status: 'Ok', message : 'Billing was removed'});
+    }
+  });
 });
