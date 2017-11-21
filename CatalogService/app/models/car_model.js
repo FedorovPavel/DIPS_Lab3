@@ -30,16 +30,16 @@ CarSchema.statics.getCars = function(page, count, callback){
   count = Number(count);
   return this.find(function(err, cars){
     if (err)
-      callback(err, null);
+      return callback(err, null);
     else {
       if (cars){
         let array = [];
         for (let I = 0; I < cars.length; I++){
           array[I] = getCarShortInfo(cars[I]);
         }
-        callback(null, array);
+        return callback(null, array);
       } else {
-        callback(null, null);
+        return callback(null, null);
       }
     }
   }).skip(page*count).limit(count);
@@ -60,22 +60,22 @@ CarSchema.statics.getCar = function(id, callback){
   });
 };
 
-CarSchema.statics.getCars = function(arr, callback){
-  return this.find({'_id' : {$in : arr }}, function (err, cars) {
-    if (err)
-      callback(err, null);
-    else 
-      if (cars){
-        let result = [];
-        for (let I = 0; I < cars.length; I++){
-          result[I] = getCarShortInfo(cars[I]);
-        }
-        callback(null, result);
-      } else {
-        callback(null, null);
-      }
-  });
-}
+// CarSchema.statics.getCars = function(arr, callback){
+//   return this.find({'_id' : {$in : arr }}, function (err, cars) {
+//     if (err)
+//       callback(err, null);
+//     else 
+//       if (cars){
+//         let result = [];
+//         for (let I = 0; I < cars.length; I++){
+//           result[I] = getCarShortInfo(cars[I]);
+//         }
+//         callback(null, result);
+//       } else {
+//         callback(null, null);
+//       }
+//   });
+// }
 
 function getCarInfo(car) {
   let item = {
