@@ -17,7 +17,7 @@ function addIdOrderToQueue(id) {
       
       ch.assertQueue(queue, {durable : false});
       ch.sendToQueue(queue, Buffer.from(id),{persistent : true});
-      console.log('ID : ' + id + ' added to queue [' + queue + ']');
+      console.log('Order ID : ' + id + ' push to queue [' + queue + ']');
     });
     setTimeout(function() {conn.close()},500);
   });
@@ -31,7 +31,7 @@ function receiveIdOrderFromQueue(callback){
       ch.assertQueue(queue, {durable : false});
       ch.consume(queue, function(id){
         const _id = id.content.toString('utf-8');
-        console.log('in queue exist id: ' + _id);
+        console.log('pop order id: ' + _id + ' from queue ['+queue+']');
         callback(_id);
       }, {noAck : true});
       setTimeout(function(){
@@ -47,16 +47,17 @@ setInterval(function(){
     if (status == 200){
       receiveIdOrderFromQueue(function(id){
         if (id){
-          bus.orderComplete(id, function(err, status){
+          bus.orderComplete(id, function(err, status, response){
             if (err)
               addIdOrderToQueue(id);
             else {
               if (status == 200){
-                console.log('id '+ id + 'processed');
+                console.log('order with id ['+ id + '] is processed');
               } else if (status == 500) {
                 addIdOrderToQueue(id);
               } else {
-                console.log('request to complete order with [' + id + '] return status : ' + status);
+                console.log('request to complete order with [' + id + '] return status : ' + status + ' response: ');
+                console.log(response);
               }
             }
           });
@@ -72,7 +73,7 @@ router.get('/catalog', function(req, res, next){
   let count = validator.checkCountNumber(req.query.count);
   bus.getCars(page, count, function(err, statusCode, responseText){
     if (err)
-      return next(err);
+      res.status(statusCode).send(responseText);
     else {
       res.status(statusCode).send(responseText);
     }
@@ -87,7 +88,7 @@ router.get('/catalog/:id', function(req, res, next){
   } else {
     bus.getCar(id, function(err, statusCode, responseText){
       if (err)
-        return next(err);
+        res.status(statusCode).send(responseText);
       else 
         res.status(statusCode).send(responseText);
     });
@@ -110,23 +111,19 @@ router.post('/orders/', function(req, res, next){
   }
   param.carID = carID;
   const startDate = validator.ConvertStringToDate(req.body.startDate);
-  if (startDate){
+  if (!startDate){
     res.status(400).send({status : 'Error', message : 'Bad request : Invalid start rent date'});
     return;
   }
   param.startDate = startDate;
   const endDate = validator.ConvertStringToDate(req.body.endDate);
-  if (!item.EndDate) {
+  if (!endDate) {
     res.status(400).send({status : 'Error', message : 'Bad request : Invalid end rent date'});
     return;
   }
-  param.endDate;
+  param.endDate = endDate;
   bus.createOrder(param, function(err, status, response){
-    if (err)
-      return next(err);
-    else {
-      res.status(status).send(response);
-    }
+    res.status(status).send(response);
   });
 });
 
@@ -262,52 +259,16 @@ router.get('/orders', function(req, res, next){
   });
 });
 
-router.post('/orders/paid/:id', function(req, res, next){
+//  Confirm order
+router.put('/orders/confirm/:id', function(req, res, next){
   const id = req.params.id;
-  const data = {
-    paySystem : req.body.paySystem,
-    account   : req.body.account,
-    cost      : req.body.cost
-  }
-  bus.orderPaid(id, data, function(err, status, response){
-    if (err)
-      return next(err);
-    else {
-      res.status(status).send(response);
-    }
-  });
-});
-
-router.post('/orders/:uid/confirm_order/:oid', function(req, res, next){
-  const uid = req.params.id;
-  const id = req.params.oid;
   bus.orderConfirm(id, function(err, status, response){
-    if (err)
-      return next(err);
-    else {
-      res.status(status).send(response);
-    }
+    res.status(status).send(response);
   });
 });
 
-router.post('/orders/completed/:oid', function(req, res, next){
-  const uid = req.params.id;
-  const id = req.params.oid;
-  bus.orderComplete(id, function(err, status, response){
-    if (err){
-      if (status == 500) {
-        addIdOrderToQueue(id);
-        res.status(202).send('Change status succesfully');
-      }else {
-        res.status(status).send(response);
-      }
-    } else {
-      res.status(status).send(response);
-    }
-  });
-});
-
-router.post('/billings', function(req, res, next){
+router.put('/orders/paid/:id', function(req, res, next){
+  const id = req.params.id;
   let data = {};
   const paySystem = validator.checkPaySystem(req.body.paySystem);
   if (typeof(paySystem) == 'undefined') {
@@ -340,14 +301,104 @@ router.post('/billings', function(req, res, next){
     return;
   }
   data.cost = cost;
-  bus.createBilling(data, function(err, status, response){
+  bus.getOrder(id, function(err, status, pre_order){
     if (err)
-      return next(err);
+      res.status(status).send(pre_order);
     else {
+      if (pre_order && pre_order.Status == 'WaitForBilling'){
+        bus.createBilling(id, data, function(err, status, response){
+          if (err)
+            res.status(status).send(response);
+          else {
+            if (response){
+              const billing_id = response.id;
+              bus.orderPaid(id, billing_id, function(err, status, order){
+                if (err){
+                  bus.revertBilling(billing_id, function(err, status, revMsg){
+                    console.log('Request to revert billing with id: ' + billing_id + ' completed with status :' + status + ' and response : ' + revMsg.message);
+                  });
+                  let msg = (order) ? order : 'Sorry. Service is not available.';
+                  msg += ' We return your money.';
+                  res.status(500).send(msg);
+                } else {
+                  if (status == 200 && order){
+                    res.status(200).send({order: order, billing : response });
+                  } else {
+                    bus.revertBilling(billing_id, function(err, status, revMsg){
+                      let msg = (order) ? order : 'Sorry. Service is not available.';
+                      msg +=  'We return your money.';
+                      res.status(status).send(msg);
+                    });
+                  }
+                }
+              });
+            }
+          }
+        });
+      } else {
+        res.status(400).send({status : 'Error', message : "Status don't right"});
+      }
+    }
+  });
+});
+
+router.put('/orders/complete/:id', function(req, res, next){
+  const id = req.params.id;
+  bus.orderComplete(id, function(err, status, response){
+    if (err){
+      if (status == 503) {
+        addIdOrderToQueue(id);
+        res.status(202).send({status : 'Ok', message : 'Change order status succesfully'});
+      }else {
+        res.status(status).send(response);
+      }
+    } else {
       res.status(status).send(response);
     }
   });
 });
+
+// router.post('/billings', function(req, res, next){
+//   let data = {};
+//   const paySystem = validator.checkPaySystem(req.body.paySystem);
+//   if (typeof(paySystem) == 'undefined') {
+//     res.status(400).send({status : 'Error', message : 'Bad request : PaySystem is undefined'});
+//     return;
+//   }
+//   if (!paySystem){
+//     res.status(400).send({status : 'Error', message : 'Bad request : Invalid PaySystem'});
+//     return;
+//   }
+//   data.paySystem = paySystem;
+//   const account = validator.checkAccount(req.body.account);
+//   if (typeof(account)  == 'undefined') {
+//     res.status(400).send({status : 'Error', message : 'Bad request : Account is undefined'});
+//     return;
+//   }
+//   if (!account){
+//     res.status(400).send({status : 'Error', message : 'Bad request : Invalid Account'});
+//     return;
+//   }
+//   data.account = account;
+//   const cost  = validator.checkCost(req.body.cost);
+//   console.log(cost);
+//   if (typeof(cost) == 'undefined'){
+//     res.status(400).send({status : 'Error', message : 'Bad request : Cost is undefined'});
+//     return;
+//   }
+//   if (!cost){
+//     res.status(400).send({status : 'Error', message : 'Bad request : Invalid cost'});
+//     return;
+//   }
+//   data.cost = cost;
+//   bus.createBilling(data, function(err, status, response){
+//     if (err)
+//       return next(err);
+//     else {
+//       res.status(status).send(response);
+//     }
+//   });
+// });
 
 router.get('/billings/:id', function(req, res, next){
   const id = validator.checkID(req.params.id);
