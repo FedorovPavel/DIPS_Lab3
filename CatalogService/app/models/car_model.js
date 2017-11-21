@@ -58,6 +58,23 @@ CarSchema.statics.getCar = function(id, callback){
       }
     }
   });
+};
+
+CarSchema.statics.getCars = function(arr, callback){
+  return this.find({'_id' : {$in : arr }}, function (err, cars) {
+    if (err)
+      callback(err, null);
+    else 
+      if (cars){
+        let result = [];
+        for (let I = 0; I < cars.length; I++){
+          result[I] = getCarShortInfo(cars[I]);
+        }
+        callback(null, result);
+      } else {
+        callback(null, null);
+      }
+  });
 }
 
 function getCarInfo(car) {

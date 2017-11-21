@@ -23,20 +23,29 @@ router.get('/',function(req, res, next){
 // get car
 router.get('/:id', function(req, res, next){
   const id = req.params.id;
-  if (!id || id.length == 0 || typeof(id) == 'undefined') {
-    res.status(400).send({status : 'Error', message : 'Bad request: id is undefined'});
-  } else {
-    catalog.getCar(id, function(err, result){
-      if (err) {
-        if (err.kind == "ObjectID")
-          res.status(400).send({status:'Error', message : 'Bad request: Invalid ID'});
-        else 
-          res.status(400).send({status:'Error', message : 'Car not found'});
-      } else {
-        res.status(200).send(result);
-      }
-    });
-  }
+  catalog.getCar(id, function(err, result){
+    if (err) {
+      if (err.kind == "ObjectID")
+        res.status(400).send({status:'Error', message : 'Bad request: Invalid ID'});
+      else 
+        res.status(400).send({status:'Error', message : 'Car not found'});
+    } else {
+      res.status(200).send(result);
+    }
+  });
+});
+
+router.get('/ids', function(req, res, next){
+  let ids = String(req.params.ids);
+  ids.replace('-',',');
+  const arr = Array.from(ids);
+  catalog.getCars(arr, function(err ,result){
+    if (err){
+      res.status(400).send({status:'Error', message : err});
+    } else {
+      res.status(200).send(result);
+    }
+  });
 });
 
 router.head('/live',function(req, res, next){
