@@ -17,6 +17,8 @@ OrderSchema.virtual('date')
   .get(() => this._id.getTimestamp());
 
 OrderSchema.statics.getOrders = function(user_id, page = 0, count = 20, callback){
+  page = Number(page);
+  count = Number(count);
   return this.find({'UserID' : user_id}, function(err, orders){
     if (err)
       return callback(err, null);
