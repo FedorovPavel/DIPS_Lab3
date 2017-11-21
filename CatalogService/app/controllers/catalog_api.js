@@ -28,25 +28,25 @@ router.get('/:id', function(req, res, next){
       if (err.kind == "ObjectID")
         res.status(400).send({status:'Error', message : 'Bad request: Invalid ID'});
       else 
-        res.status(400).send({status:'Error', message : 'Car not found'});
+        res.status(404).send({status:'Error', message : 'Car not found'});
     } else {
       res.status(200).send(result);
     }
   });
 });
 
-router.get('/ids', function(req, res, next){
-  let ids = String(req.params.ids);
-  ids.replace('-',',');
-  const arr = Array.from(ids);
-  catalog.getCars(arr, function(err ,result){
-    if (err){
-      res.status(400).send({status:'Error', message : err});
-    } else {
-      res.status(200).send(result);
-    }
-  });
-});
+// router.get('/ids', function(req, res, next){
+//   let ids = String(req.params.ids);
+//   ids.replace('-',',');
+//   const arr = Array.from(ids);
+//   catalog.getCars(arr, function(err ,result){
+//     if (err){
+//       res.status(400).send({status:'Error', message : err});
+//     } else {
+//       res.status(200).send(result);
+//     }
+//   });
+// });
 
 router.head('/live',function(req, res, next){
   res.status(200).send(null);
