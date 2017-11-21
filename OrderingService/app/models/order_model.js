@@ -122,7 +122,7 @@ OrderSchema.statics.setPaidStatus = function(id, callback){
   });
 };
 
-OrderSchema.statics.setCompletedStatus = function(id, callback){
+OrderSchema.statics.setCompleteStatus = function(id, callback){
   return this.findById(id, function(err, order){
     if (err)
       return callback(err, null);
@@ -133,8 +133,9 @@ OrderSchema.statics.setCompletedStatus = function(id, callback){
           return order.save(function(err, res){
             if (err)
               return callback(err, null);
-            else 
-              return callback(null, res);
+            else {
+              return callback(null, getOrder(res));
+            }
           });
         } else {
           return callback("Status don't right", null);
