@@ -7,6 +7,10 @@ module.exports = function(app) {
   app.use('/orders', router);
 };
 
+router.head('/live',function(req, res, next){
+  res.status(200).send();
+});
+
 router.get('/', function(req, res, next){ 
   let page  = req.query.page;
   let count = req.query.count;
@@ -28,6 +32,7 @@ router.get('/', function(req, res, next){
 });
 
 router.get('/:id', function(req, res, next) {
+  const uid = "59f634f54929021fa8251644";
   const id = req.params.id;
   orders.getOrder(id, function(err, order){
     if (err) {
@@ -45,7 +50,7 @@ router.get('/:id', function(req, res, next) {
   });
 });
 
-router.put('/confirm/:id', function(req, res, next){
+router.post('/confirm/:id', function(req, res, next){
   const id = req.params.id;
   orders.setWaitStatus(id, function(err, result){
     if (err) {
@@ -65,7 +70,7 @@ router.put('/confirm/:id', function(req, res, next){
   });
 });
 
-router.put('/paid/:id', function(req, res, next){
+router.post('/paid/:id', function(req, res, next){
   const id = req.params.id;
   const data = {
     paySystem : req.body.paySystem,
@@ -88,9 +93,9 @@ router.put('/paid/:id', function(req, res, next){
   });
 });
 
-router.put('/completed/:id', function(req, res, next){
+router.post('/complete/:id', function(req, res, next){
   const id = req.params.id;
-  orders.setCompletedStatus(id, function(err, result){
+  orders.setCompleteStatus(id, function(err, result){
     if (err) {
       if (err.kind == "ObjectId")
         res.status(400).send({status : 'Error', message : 'Bad ID'});
@@ -98,7 +103,7 @@ router.put('/completed/:id', function(req, res, next){
         res.status(400).send({status : 'Error', message : err});
     } else {
       if (result) {
-        res.status(200).send('Change status succesfully');
+        res.status(200).send(result);
       } else {
         res.status(404).send({status : 'Error', message : 'Not found order'});
       }
