@@ -1,0 +1,6 @@
+mongoDB request on shell
+db.orders.find({"_id": ObjectId("")})
+
+db.orders.find({"Status": ""})
+
+db.collections.findOne({"_id": ObjectId("")})
