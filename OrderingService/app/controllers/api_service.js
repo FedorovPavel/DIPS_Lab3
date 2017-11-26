@@ -50,9 +50,11 @@ router.get('/:id', function(req, res, next) {
   });
 });
 
-router.post('/confirm/:id', function(req, res, next){
+router.put('/confirm/:id', function(req, res, next){
   const id = req.params.id;
+  console.log(id);
   orders.setWaitStatus(id, function(err, result){
+    console.log(err);
     if (err) {
       if (err.kind == "ObjectId")
         res.status(400).send({status : 'Error', message : 'Bad request: bad ID'});

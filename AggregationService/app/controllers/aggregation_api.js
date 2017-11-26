@@ -71,7 +71,7 @@ setInterval(function(){
 router.get('/catalog', function(req, res, next){
   let page  = validator.checkPageNumber(req.query.page);
   let count = validator.checkCountNumber(req.query.count);
-  bus.getCars(page, count, function(err, statusCode, responseText){
+  bus.getCars(page, count, function(err, statusCode = 500, responseText){
     if (err)
       res.status(statusCode).send(responseText);
     else {

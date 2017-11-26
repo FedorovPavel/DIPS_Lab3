@@ -177,8 +177,10 @@ function responseHandlerObject(err, status, response, callback) {
     if (err) {
         if (err.code == "ECONNREFUSED")
             return callback(err, 503, 'Sorry. Service is not available, please try again later');
-        else 
+        else {
+            status = (status || typeof(status) != 'undefined') ? status : 500;
             return callback(err, status, response);
+        }
     } else {
         if (response) {
             const object = JSON.parse(response);
@@ -193,8 +195,10 @@ function responseHandlerArrayObject(err, status, response, callback) {
     if (err){
         if (err.code == "ECONNREFUSED")
             return callback(err, 503, 'Sorry. Service is not available, please try again later');
-        else 
+        else {
+            status = (status || typeof(status) != 'undefined') ? status : 500;
             return callback(err, status, response);
+        }
     } else {
         if (status == 200) {
             if (response) {
